@@ -30,7 +30,7 @@ Implement a mini virtual memory system simulator.
 
 - When the system has many free page frames, allocate the page frame that has the smallest page frame number.
 
-- `free` command is to deallocate the page that is mapped to the VPN. The page table should be set so that subsequent accesses to the freed VPN should be denied by MMU. You should consider the case when the target page frame is mapped more than or eqal to 2 to properly handle `free` command with copy-on-write feature.
+- `free` command is to deallocate the page that is mapped to the VPN. The page table should be set so that subsequent accesses to the freed VPN should be denied by MMU. You should consider the case when the target page frame is mapped more than or equal to 2 to properly handle `free` command with copy-on-write feature.
 
 - `read` and `write` is to instruct the system to simulate the memory access. These commands are followed by VPN (virtual page number). For example;
 
@@ -54,7 +54,7 @@ To duplicate the parent's address space, set up the PTE in the child's page tabl
 
 
 ### Tips and Restriction
-- Implement features in an incremental way; implement the allocatoin/deallocation functions first to get used to the page table/PTE manipulation. And then move on to implement the fork by duplicating the page table contents. You need to manipulate both PTEs of parent and child to support copy-on-write properly.
+- Implement features in an incremental way; implement the allocation/deallocation functions first to get used to the page table/PTE manipulation. And then move on to implement the fork by duplicating the page table contents. You need to manipulate both PTEs of parent and child to support copy-on-write properly.
 - Be careful to handle `writable` bit in the page table when you attach a page or share it. Read-only pages should not be writable after the fork whereas writable pages should be writable after the fork through the copy-on-write mechanism. You can leverage the `private` variable in `struct pte` to implement this feature.
 - Likewise previous PAs, printing out to stdout does not influence on the grading. So, feel free to print out debug message using `printf`.
 
@@ -80,9 +80,10 @@ To duplicate the parent's address space, set up the PTE in the child's page tabl
 	- No more than six pages
 
 - Git repository (10 bonus pts)
-	- Register http URL and with a deploy token and password.
+	- Register http/https URL and with a deploy token and password.
 	- Start the repository by cloning this repository.
-	- Make sure the token is valid through June 15 (due + 3 slip days + 1 day)
+	- Make sure your repository is private.
+	- Also, make sure the token is valid through June 15 (due + 3 slip days + 1 day)
 
 - *THE INSTRUCTOR WILL NOT ANSWER THE QUESTIONS ABOUT THOSE ALREADY SPECIFIED ON THE HANDOUT.*
 - *QUESTIONS OVER EMAIL WILL BE IGNORED UNLESS IT CONCERNS YOUR PRIVACY.*

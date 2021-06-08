@@ -60,7 +60,7 @@ extern unsigned int mapcounts[];
  *   Return allocated page frame number.
  *   Return -1 if all page frames are allocated.
  */
- int cnt=0;
+ int cnt=-1;
 unsigned int alloc_page(unsigned int vpn, unsigned int rw)
 {
 	int pd_index = vpn / NR_PTES_PER_PAGE; //outer의 인덱스
@@ -81,9 +81,10 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw)
 		pte->valid = true;
 		pte->writable = false;
 	}else if(rw == 3){ //rw == RW_WRITE이면 나중에 쓰기 위해 액세스 가능하도록
-		pte->valid = false;
+		pte->valid = true;
 		pte->writable = true;
 	}
+	cnt++;
     pte->pfn = cnt;
 
     mapcounts[pte_index]++;

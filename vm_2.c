@@ -70,7 +70,7 @@ extern void switch_process(unsigned int pid);
 
 
 //추가
-int cnt=0;
+int cnt=-1;
 unsigned int alloc_page(unsigned int vpn, unsigned int rw) //vpn을 index로 사용?, 0 ~ 15
 { 
 	//페이지 프레임을 vpn에 붙이는 것!
@@ -97,14 +97,15 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw) //vpn을 index로 사
 		pte->valid = true;
 		pte->writable = false;
 	}else if(rw == RW_WRITE){ //rw == RW_WRITE이면 나중에 쓰기 위해 액세스 가능하도록
-		pte->valid = false;
+		pte->valid = true;
 		pte->writable = true;
 	}
+    cnt++;
     pte->pfn = cnt;
 
     mapcounts[pte_index]++;
 
-    return cnt++;
+    return cnt;
 
 	
 

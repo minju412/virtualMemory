@@ -77,10 +77,10 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw)
     // struct pte *pte = &pd->ptes[pte_index];
 
 
-    if(rw == RW_READ){ //액세스 할 수 없도록
+    if(rw == 1){ //액세스 할 수 없도록
 		pte->valid = true;
 		pte->writable = false;
-	}else if(rw == RW_WRITE){ //rw == RW_WRITE이면 나중에 쓰기 위해 액세스 가능하도록
+	}else if(rw == 3){ //rw == RW_WRITE이면 나중에 쓰기 위해 액세스 가능하도록
 		pte->valid = false;
 		pte->writable = true;
 	}

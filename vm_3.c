@@ -73,11 +73,7 @@ extern void switch_process(unsigned int pid);
 int cnt=0;
 unsigned int alloc_page(unsigned int vpn, unsigned int rw) //vpn을 index로 사용?, 0 ~ 15
 { 
-	//페이지 프레임을 vpn에 붙이는 것!
-	//alloc 10 r
-	//page frame 0번을 VPN 10에 할당
-	//alloc 20 r
-	//page frame 1번을 VPN 20에 할당
+	//rw 명령을 보완!!!
 
     int pd_index = vpn / NR_PTES_PER_PAGE; //outer의 인덱스
 	int pte_index = vpn % NR_PTES_PER_PAGE; //ptes의 인덱스
@@ -86,18 +82,15 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw) //vpn을 index로 사
 
    if(!pd){
        current->pagetable.outer_ptes[pd_index] = malloc(sizeof(struct pte_directory));
-        // pd = malloc(sizeof(struct pte_directory));
    }
 
     struct pte *pte = &current->pagetable.outer_ptes[pd_index]->ptes[pte_index];
-    // struct pte *pte = &pd->ptes[pte_index];
 
-
-    if(rw == RW_READ){ //액세스 할 수 없도록
+    if(rw == 1){ //액세스 할 수 없도록
 		pte->valid = true;
 		pte->writable = false;
-	}else if(rw == RW_WRITE){ //rw == RW_WRITE이면 나중에 쓰기 위해 액세스 가능하도록
-		pte->valid = false;
+	}else if(rw == 3){ //rw == RW_WRITE이면 나중에 쓰기 위해 액세스 가능하도록
+		pte->valid = true;
 		pte->writable = true;
 	}
     pte->pfn = cnt;

@@ -71,85 +71,45 @@ extern void switch_process(unsigned int pid);
 
 //추가
 int cnt=0;
-//return pfn!!
 unsigned int alloc_page(unsigned int vpn, unsigned int rw) //vpn을 index로 사용?, 0 ~ 15
-{ //page allocation to current process!
+{ 
+	//페이지 프레임을 vpn에 붙이는 것!
+	//alloc 10 r
+	//page frame 0번을 VPN 10에 할당
+	//alloc 20 r
+	//page frame 1번을 VPN 20에 할당
+
+    int pd_index = vpn / NR_PTES_PER_PAGE; //outer의 인덱스
+	int pte_index = vpn % NR_PTES_PER_PAGE; //ptes의 인덱스
+
+   struct pte_directory *pd = current->pagetable.outer_ptes[pd_index];
+
+   if(!pd){
+       current->pagetable.outer_ptes[pd_index] = malloc(sizeof(struct pte_directory));
+        // pd = malloc(sizeof(struct pte_directory));
+   }
+
+    struct pte *pte = &current->pagetable.outer_ptes[pd_index]->ptes[pte_index];
+    // struct pte *pte = &pd->ptes[pte_index];
 
 
-	int k=0, ret=cnt;
-	// if(cnt >= NR_PTES_PER_PAGE){
-	// 	k = cnt / NR_PTES_PER_PAGE; //몫 -> outerpage 증가..?
-	// 	ret = cnt % NR_PTES_PER_PAGE; //나머지
-	// }
-
-	struct pte_directory *outer_ptes[NR_PTES_PER_PAGE];
-
-	int pd_index = vpn / NR_PTES_PER_PAGE;
-	int pte_index = vpn % NR_PTES_PER_PAGE;
-	if(vpn >= NR_PTES_PER_PAGE){
-		vpn %= NR_PTES_PER_PAGE;
+    if(rw == RW_READ){ //액세스 할 수 없도록
+		pte->valid = true;
+		pte->writable = false;
+	}else if(rw == RW_WRITE){ //rw == RW_WRITE이면 나중에 쓰기 위해 액세스 가능하도록
+		pte->valid = false;
+		pte->writable = true;
 	}
-	// cnt++;
+    pte->pfn = cnt;
 
-	struct pagetable *pt = ptbr;
-	struct pte_directory *pd;
-	struct pte *pte;
-	
-	// current->pagetable = *pt;
-	// pt = &current->pagetable;
+    mapcounts[pte_index]++;
 
-	// printf("pt=%d\n", *pt);
-	
-
-	if(!pt) printf("pt null\n");
-
-
-	
-
-	pd = current->pagetable.outer_ptes[pd_index];
-	// pd = pt->outer_ptes[pd_index];
-	if(!pd) printf("pd null\n"); //지금 pd가 없음..
-	
-
-	pte = &pd->ptes[pte_index]; //vpn
-	// printf("pte=%d\n", pte); //12
-	// printf("&pte->pfn=%d\n", &pte->pfn); //16
-
-
-	// pte->pfn=10;
-	// printf("%d\n", pte->pfn); 
-
-	if(!pte) printf("pte null\n");
-
-	// printf("k=%d vpn=%d\n", k, vpn);
-	// printf("&pte->pfn=%d\n", &pte->pfn); //16
-	// &pte->pfn = ret;
-
-	// map @pfn(cnt) to @vpn?????
-	// You may construct the page table of the @current process
-	// page table을 어떻게 construct 할까??
-	// hierarchical page table 강의 다시 듣기!
-	
-
-
-	// if(rw == RW_READ){ //액세스 할 수 없도록
-	// 	pte->valid = true;
-	// 	pte->writable = false;
-	// }else{ //rw == RW_WRITE이면 나중에 쓰기 위해 액세스 가능하도록
-	// 	pte->valid = false;
-	// 	pte->writable = true;
-	// }
-	// pte->pfn=cnt;
-
-
-	return cnt++;
-
-
+    return cnt++;
 
 	
 
 
-	return -1;
+	// return -1;
 }
 
 // void free_page(unsigned int vpn) //맵카운트가 0일때는 free하고 0보다 크면 아예 반환해버리면 안됨

@@ -37,11 +37,11 @@ struct pte {
 	unsigned int private;	/* May use to backup something ;-) */
 };
 
-struct pte_directory {
+struct pte_directory { //inner
 	struct pte ptes[NR_PTES_PER_PAGE];
 };
 
-struct pagetable {
+struct pagetable { //outer
 	struct pte_directory *outer_ptes[NR_PTES_PER_PAGE];
 };
 

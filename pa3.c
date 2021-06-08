@@ -60,9 +60,37 @@ extern unsigned int mapcounts[];
  *   Return allocated page frame number.
  *   Return -1 if all page frames are allocated.
  */
+ int cnt=0;
 unsigned int alloc_page(unsigned int vpn, unsigned int rw)
 {
-	return -1;
+	int pd_index = vpn / NR_PTES_PER_PAGE; //outer의 인덱스
+	int pte_index = vpn % NR_PTES_PER_PAGE; //ptes의 인덱스
+
+   struct pte_directory *pd = current->pagetable.outer_ptes[pd_index];
+
+   if(!pd){
+       current->pagetable.outer_ptes[pd_index] = malloc(sizeof(struct pte_directory));
+        // pd = malloc(sizeof(struct pte_directory));
+   }
+
+    struct pte *pte = &current->pagetable.outer_ptes[pd_index]->ptes[pte_index];
+    // struct pte *pte = &pd->ptes[pte_index];
+
+
+    if(rw == RW_READ){ //액세스 할 수 없도록
+		pte->valid = true;
+		pte->writable = false;
+	}else if(rw == RW_WRITE){ //rw == RW_WRITE이면 나중에 쓰기 위해 액세스 가능하도록
+		pte->valid = false;
+		pte->writable = true;
+	}
+    pte->pfn = cnt;
+
+    mapcounts[pte_index]++;
+
+    return cnt++;
+
+	// return -1;
 }
 
 
@@ -77,7 +105,7 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw)
  */
 void free_page(unsigned int vpn)
 {
-	///
+	
 }
 
 
@@ -97,7 +125,7 @@ void free_page(unsigned int vpn)
  *   @true on successful fault handling
  *   @false otherwise
  */
-bool handle_page_fault(unsigned int vpn, unsigned int rw)
+bool handle_page_fault(unsigned int vpn, unsigned int rw) 
 {
 	return false;
 }

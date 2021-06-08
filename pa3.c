@@ -87,7 +87,7 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw)
 	cnt++;
     pte->pfn = cnt;
 
-    mapcounts[pte_index]++;
+    mapcounts[cnt]++;
 
     return cnt;
 

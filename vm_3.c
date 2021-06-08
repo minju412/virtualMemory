@@ -73,8 +73,6 @@ extern void switch_process(unsigned int pid);
 int cnt=-1;
 unsigned int alloc_page(unsigned int vpn, unsigned int rw) //vpn을 index로 사용?, 0 ~ 15
 { 
-	//rw 명령을 보완!!!
-
     int pd_index = vpn / NR_PTES_PER_PAGE; //outer의 인덱스
 	int pte_index = vpn % NR_PTES_PER_PAGE; //ptes의 인덱스
 
@@ -96,7 +94,7 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw) //vpn을 index로 사
     cnt++;
     pte->pfn = cnt;
 
-    mapcounts[pte_index]++;
+    mapcounts[cnt]++;
 
     return cnt;
 

@@ -217,13 +217,7 @@ bool handle_page_fault(unsigned int vpn, unsigned int rw)
  *   bit in PTE and mapcounts for shared pages. You may use pte->private for 
  *   storing some useful information :-)
  */
-struct process child = {
-            .pid = 0,
-            .list = LIST_HEAD_INIT(init.list),
-            .pagetable = {
-                .outer_ptes = { NULL },
-            },
-        };
+struct process child;
 void switch_process(unsigned int pid) 
 //존재하는 프로세스면 context switch(ptbr을 바꿔줘야함), 존재하지 않으면 fork
 {

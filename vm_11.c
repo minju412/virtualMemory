@@ -166,17 +166,13 @@ void free_page(unsigned int vpn) //맵카운트가 0일때는 free하고 0보다
     mapcounts[pte->pfn]--;
     mapcnt_index--;
 
-    push_stack(pte->pfn);
+    // push_stack(pte->pfn);
     pte->pfn = 0;
    
-    // cnt--; 
-
-    // if(mapcounts[pte->pfn] > 1){ //두개 이상의 프로세스가 사용중
-    //     mapcounts[pte->pfn]--;
-    // }else{
-    //     // free(current->pagetable.outer_ptes[pd_index]);
-    // }
-
+    if(mapcounts[pte->pfn] == 0){ //current만 쓰고있던 페이지여서 반환해도 됨
+        push_stack(pte->pfn);//free를 어떻게 하지??
+    }
+    
 }
 
 bool handle_page_fault(unsigned int vpn, unsigned int rw) //상태가 Invalid일 때(page fault) MMU가 운영체제에게 부탁, copy-on-write 구현
@@ -219,6 +215,9 @@ bool handle_page_fault(unsigned int vpn, unsigned int rw) //상태가 Invalid일
 	}
 
 }
+
+
+//switch 1-> switch 2 했을 때 2번의 show가 다 0으로 출력.......????
 
 struct process child;
 void switch_process(unsigned int pid) 

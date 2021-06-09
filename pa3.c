@@ -131,11 +131,13 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw) //vpn을 index로 사
         cnt++;
         pte->pfn = cnt;
         mapcounts[cnt]++;
+        mapcnt_index++;
         return cnt;
     }else{ //free 받은 pfn이 있다면
         int min = find_min();
         pte->pfn = min;
         mapcounts[min]++;
+        mapcnt_index++;
         return min;
     }
 
@@ -163,6 +165,7 @@ void free_page(unsigned int vpn) //맵카운트가 0일때는 free하고 0보다
     pte->writable = false;
 
     mapcounts[pte->pfn]--;
+    mapcnt_index--;
 
     push_stack(pte->pfn);
     pte->pfn = 0;
@@ -286,6 +289,18 @@ here:
         //깊은 복사 -> 포인터를 복사하는게 아니라 하나하나 내용 복사!
 
         child.pid = pid;
+
+        //copy-on-write
+        //current의 w를 끄기 (원래 read였으면 pte->private=0 / write였으면 private=1)
+        for(int i=0; i<=global_pd_index; i++){
+            for(int j=0; j<16; j++){
+                current->pagetable.outer_ptes[i]->ptes[j].writable = false;
+            }
+        } 
+
+        //mapcount 추가
+        for(int i=0; i<mapcnt_index; i++)
+            mapcounts[i]++;
         
         for(int i=0; i<=global_pd_index; i++){ //current의 outertable이 몇개까지 있는지!!!
             child.pagetable.outer_ptes[i] = malloc(sizeof(struct pte_directory));
@@ -294,7 +309,9 @@ here:
                 // struct pte *pte = &current->pagetable.outer_ptes[i]->ptes[j];  
                 child.pagetable.outer_ptes[i]->ptes[j].writable = false;
                 child.pagetable.outer_ptes[i]->ptes[j].valid = current->pagetable.outer_ptes[i]->ptes[j].valid;
-                child.pagetable.outer_ptes[i]->ptes[j].pfn = current->pagetable.outer_ptes[i]->ptes[j].pfn;
+                child.pagetable.outer_ptes[i]->ptes[j].pfn = current->pagetable.outer_ptes[i]->ptes[j].pfn; 
+                child.pagetable.outer_ptes[i]->ptes[j].private = current->pagetable.outer_ptes[i]->ptes[j].private;              
+             
             }
         }
 

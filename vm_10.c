@@ -28,7 +28,6 @@
 #include "list_head.h"
 #include "vm.h"
 
-#define MAX 50 //추가
 
 static bool verbose = true;
 
@@ -108,7 +107,8 @@ int find_min(void){
 }
 
 int cnt=-1;
-int global_pd_index=0; //추가
+int global_pd_index=0; 
+int mapcnt_index=0; ////////////////////////////추가
 unsigned int alloc_page(unsigned int vpn, unsigned int rw) //vpn을 index로 사용?, 0 ~ 15
 { 
     int pd_index = vpn / NR_PTES_PER_PAGE; //outer의 인덱스
@@ -125,12 +125,14 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw) //vpn을 index로 사
 
     struct pte *pte = &current->pagetable.outer_ptes[pd_index]->ptes[pte_index];
 
-    if(rw == 1){ //액세스 할 수 없도록
+    if(rw == 1){ //rw == RW_READ
 		pte->valid = true;
 		pte->writable = false;
-	}else if(rw == 3){ //rw == RW_WRITE이면 나중에 쓰기 위해 액세스 가능하도록
+        pte->private = 0; ////////////////////////추가 - read 였음
+	}else if(rw == 3){ //rw == RW_WRITE
 		pte->valid = true;
 		pte->writable = true;
+        pte->private = 1; ////////////////////////추가 - write 였음
 	}
 
 
@@ -138,11 +140,13 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw) //vpn을 index로 사
         cnt++;
         pte->pfn = cnt;
         mapcounts[cnt]++;
+        mapcnt_index++;
         return cnt;
     }else{ //free 받은 pfn이 있다면
         int min = find_min();
         pte->pfn = min;
         mapcounts[min]++;
+        mapcnt_index++;
         return min;
     }
 
@@ -160,6 +164,7 @@ void free_page(unsigned int vpn) //맵카운트가 0일때는 free하고 0보다
     pte->writable = false;
 
     mapcounts[pte->pfn]--;
+    mapcnt_index--;
 
     push_stack(pte->pfn);
     pte->pfn = 0;
@@ -176,15 +181,44 @@ void free_page(unsigned int vpn) //맵카운트가 0일때는 free하고 0보다
 
 bool handle_page_fault(unsigned int vpn, unsigned int rw) //상태가 Invalid일 때(page fault) MMU가 운영체제에게 부탁, copy-on-write 구현
 {
-    //1. victime page를 골라서 
-    //2. 디스크에 있는 swap file로 eviction (디스크에 어디에 옮겼는지 메모해둠<-나중에 찾을 수 있도록)
-    //3. PTE를 update
-    //you may modify/allocate/fix up the page table in this function.
+    // printf("handling start!\n");
+    int pd_index = vpn / NR_PTES_PER_PAGE; //outer의 인덱스
+	int pte_index = vpn % NR_PTES_PER_PAGE; //ptes의 인덱스
+    struct pte_directory *pd = current->pagetable.outer_ptes[pd_index];
+    struct pte *pte = &current->pagetable.outer_ptes[pd_index]->ptes[pte_index];
+
+    int old_pfn=pte->pfn;
     
+    int new_pfn=0;
 
-	return false;
+    if(pte->private == 0){ //rw == RW_READ
+		return false;
+	}else if(pte->private == 1){ //rw == RW_WRITE
+        //내용을 다른 page frame에 copy한 뒤에
+
+        //new_pfn 찾기
+        if(list_empty(&stack)){
+            cnt++;
+            new_pfn = cnt;         
+        }else{ //free 받은 pfn이 있다면
+            int min = find_min();
+            new_pfn = min;       
+        }
+        
+        //원래 매핑을 끊고 (free 아닌듯!) 
+        pte->pfn = new_pfn;
+        //copy한 frame에 연결하고 
+        // current->pagetable.outer_ptes[pd_index]->ptes[new_pfn].pfn = new_pfn;
+        //w를 켜주고 (PTE update)
+        pte->writable = true;
+        // current->pagetable.outer_ptes[pd_index]->ptes[new_pfn].writable = true;
+        
+        mapcounts[old_pfn]--;
+        mapcounts[new_pfn]++;
+        return true;
+	}
+
 }
-
 
 struct process child;
 void switch_process(unsigned int pid) 
@@ -217,6 +251,18 @@ here:
         //깊은 복사 -> 포인터를 복사하는게 아니라 하나하나 내용 복사!
 
         child.pid = pid;
+
+        //copy-on-write
+        //current의 w를 끄기 (원래 read였으면 pte->private=0 / write였으면 private=1)
+        for(int i=0; i<=global_pd_index; i++){
+            for(int j=0; j<16; j++){
+                current->pagetable.outer_ptes[i]->ptes[j].writable = false;
+            }
+        } 
+
+        //mapcount 추가
+        for(int i=0; i<mapcnt_index; i++)
+            mapcounts[i]++;
         
         for(int i=0; i<=global_pd_index; i++){ //current의 outertable이 몇개까지 있는지!!!
             child.pagetable.outer_ptes[i] = malloc(sizeof(struct pte_directory));
@@ -225,7 +271,9 @@ here:
                 // struct pte *pte = &current->pagetable.outer_ptes[i]->ptes[j];  
                 child.pagetable.outer_ptes[i]->ptes[j].writable = false;
                 child.pagetable.outer_ptes[i]->ptes[j].valid = current->pagetable.outer_ptes[i]->ptes[j].valid;
-                child.pagetable.outer_ptes[i]->ptes[j].pfn = current->pagetable.outer_ptes[i]->ptes[j].pfn;
+                child.pagetable.outer_ptes[i]->ptes[j].pfn = current->pagetable.outer_ptes[i]->ptes[j].pfn; 
+                child.pagetable.outer_ptes[i]->ptes[j].private = current->pagetable.outer_ptes[i]->ptes[j].private;              
+             
             }
         }
 

@@ -100,10 +100,14 @@ int find_min(void){
 }
 
 int cnt=-1;
+int global_pd_index=0;
 unsigned int alloc_page(unsigned int vpn, unsigned int rw) //vpn을 index로 사용?, 0 ~ 15
 { 
     int pd_index = vpn / NR_PTES_PER_PAGE; //outer의 인덱스
 	int pte_index = vpn % NR_PTES_PER_PAGE; //ptes의 인덱스
+
+    if(global_pd_index < pd_index)
+        global_pd_index = pd_index;
 
    struct pte_directory *pd = current->pagetable.outer_ptes[pd_index];
 

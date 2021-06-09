@@ -213,6 +213,59 @@ bool handle_page_fault(unsigned int vpn, unsigned int rw)
  *   bit in PTE and mapcounts for shared pages. You may use pte->private for 
  *   storing some useful information :-)
  */
-void switch_process(unsigned int pid)
+struct process child = {
+            .pid = 0,
+            .list = LIST_HEAD_INIT(init.list),
+            .pagetable = {
+                .outer_ptes = { NULL },
+            },
+        };
+void switch_process(unsigned int pid) 
+//존재하는 프로세스면 context switch(ptbr을 바꿔줘야함), 존재하지 않으면 fork
 {
+    struct list_head* ptr;
+    struct process* prc = NULL;
+    int flag=0;
+    
+
+    list_for_each(ptr, &processes){
+        prc = list_entry(ptr, struct process, list);
+
+        if(prc->pid == pid){ //존재하는 프로세스로 switch
+            // printf("find!\n");
+            flag=1;
+            
+            list_del(&prc->list);
+                     
+            ptbr = &prc->pagetable; 
+            list_add_tail(&current->list, &processes);
+            current = prc; 
+            goto here;   
+        }      
+    }
+
+here:
+    if(flag==0){ //존재하지 않는 프로세스로 switch
+        // printf("forked!\n");
+        //깊은 복사 -> 포인터를 복사하는게 아니라 하나하나 내용 복사!
+
+        child.pid = pid;
+        
+        for(int i=0; i<=global_pd_index; i++){ //current의 outertable이 몇개까지 있는지!!!
+            child.pagetable.outer_ptes[i] = malloc(sizeof(struct pte_directory));
+            
+            for(int j=0; j<16; j++){ 
+                // struct pte *pte = &current->pagetable.outer_ptes[i]->ptes[j];  
+                child.pagetable.outer_ptes[i]->ptes[j].writable = false;
+                child.pagetable.outer_ptes[i]->ptes[j].valid = current->pagetable.outer_ptes[i]->ptes[j].valid;
+                child.pagetable.outer_ptes[i]->ptes[j].pfn = current->pagetable.outer_ptes[i]->ptes[j].pfn;
+            }
+        }
+
+        list_add_tail(&current->list, &processes);
+        ptbr = &child.pagetable;
+        current = &child;
+        
+    }
+    
 }

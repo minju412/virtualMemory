@@ -169,7 +169,7 @@ void free_page(unsigned int vpn) //맵카운트가 0일때는 free하고 0보다
 
 
 	if(mapcounts[pte->pfn] >= 1){ //다른 프로세스도 같이 쓰고 있던 페이지
-        push_stack(pte->pfn); 
+        // push_stack(pte->pfn); 
     } else{ //나 혼자 쓰고 있었다면 스택에서 찾아서 지우기?
 		struct list_head *ptr, *ptrn;
 		struct entry *node;

@@ -168,10 +168,13 @@ void free_page(unsigned int vpn) //맵카운트가 0일때는 free하고 0보다
 	mapcnt_index--;
 
 
-    if(mapcounts[pte->pfn] == 0){
-        pte->pfn = 0;
-        pte->valid = false;
-        pte->writable = false;
+    int tmp = pte->pfn;
+    pte->pfn = 0;
+    pte->valid = false;
+    pte->writable = false;
+
+    if(mapcounts[tmp] == 0){ //혼자 쓰고 있던 것
+       pte = NULL;
     }
 
 

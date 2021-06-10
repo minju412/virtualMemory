@@ -333,20 +333,23 @@ here:
         } 
 
         //mapcount 추가
-        for(int i=0; i<mapcnt_index; i++)
-            mapcounts[i]++;
+        // for(int i=0; i<mapcnt_index; i++)
+        //     mapcounts[i]++;
         
         for(int i=0; i<=global_pd_index; i++){ //current의 outertable이 몇개까지 있는지!!!
             if(!child.pagetable.outer_ptes[i])
                 child.pagetable.outer_ptes[i] = malloc(sizeof(struct pte_directory));
             
             for(int j=0; j<16; j++){ 
-                // struct pte *pte = &current->pagetable.outer_ptes[i]->ptes[j];  
                 child.pagetable.outer_ptes[i]->ptes[j].writable = false;
                 child.pagetable.outer_ptes[i]->ptes[j].valid = current->pagetable.outer_ptes[i]->ptes[j].valid;
                 child.pagetable.outer_ptes[i]->ptes[j].pfn = current->pagetable.outer_ptes[i]->ptes[j].pfn; 
                 child.pagetable.outer_ptes[i]->ptes[j].private = current->pagetable.outer_ptes[i]->ptes[j].private;              
              
+                //추가
+                if(child.pagetable.outer_ptes[i]->ptes[j].valid==true){
+                    mapcounts[child.pagetable.outer_ptes[i]->ptes[j].pfn]++;
+                }                
             }
         }
 

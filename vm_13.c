@@ -163,6 +163,13 @@ void free_page(unsigned int vpn) //맵카운트가 0일때는 free하고 0보다
 
     struct pte *pte = &current->pagetable.outer_ptes[pd_index]->ptes[pte_index];
 
+    // //원래 read였는지 write였는지에 따라 다르게 cow 적용!
+    // if(pte->private == 0){ //원래 read만
+
+    // }else{ //원래 read,write
+
+    // }
+
     pte->valid = false;
     pte->writable = false;
 
@@ -307,9 +314,15 @@ here:
             }
         } 
 
-        //mapcount 추가
-        for(int i=0; i<mapcnt_index; i++)
-            mapcounts[i]++;
+        //mapcount 추가 -> 이렇게 하면 안될듯!
+        // for(int i=0; i<mapcnt_index; i++)
+        //     mapcounts[i]++;
+
+        //valid한 pte를 찾아서
+        //mapcounts[pte->pfn]++;
+
+
+
         
         // printf("4. current=%d\n", current->pid);
         for(int i=0; i<=global_pd_index; i++){ //current의 outertable이 몇개까지 있는지!!!
@@ -320,7 +333,12 @@ here:
                 child.pagetable.outer_ptes[i]->ptes[j].writable = false;
                 child.pagetable.outer_ptes[i]->ptes[j].valid = current->pagetable.outer_ptes[i]->ptes[j].valid;
                 child.pagetable.outer_ptes[i]->ptes[j].pfn = current->pagetable.outer_ptes[i]->ptes[j].pfn; 
-                child.pagetable.outer_ptes[i]->ptes[j].private = current->pagetable.outer_ptes[i]->ptes[j].private;                        
+                child.pagetable.outer_ptes[i]->ptes[j].private = current->pagetable.outer_ptes[i]->ptes[j].private;      
+
+                //추가
+                if(child.pagetable.outer_ptes[i]->ptes[j].valid==true){
+                    mapcounts[child.pagetable.outer_ptes[i]->ptes[j].pfn]++;
+                }                  
             }
         }
         // printf("5. current=%d\n", current->pid);

@@ -165,14 +165,35 @@ void free_page(unsigned int vpn) //맵카운트가 0일때는 free하고 0보다
     pte->writable = false;
 
     mapcounts[pte->pfn]--;
-    mapcnt_index--;
+	mapcnt_index--;
+
+
+	if(mapcounts[pte->pfn] >= 1){ //다른 프로세스도 같이 쓰고 있던 페이지
+        push_stack(pte->pfn); 
+    } else{ //나 혼자 쓰고 있었다면 스택에서 찾아서 지우기?
+		struct list_head *ptr, *ptrn;
+		struct entry *node;
+		int flag=0;
+	
+		list_for_each_prev(ptr, &stack){ 
+			node =list_entry(ptr, struct entry, list);			
+			if(node->num == pte->pfn){ //존재하면 삭제
+				flag=1;
+			}
+		}
+		if(flag==1){
+			list_for_each_safe(ptr, ptrn, &stack){ 
+				node =list_entry(ptr, struct entry, list);
+				if(node->num == pte->pfn){
+					list_del(&node->list);					
+				}
+			}
+		}
+		
+	}
 
     // push_stack(pte->pfn);
     pte->pfn = 0;
-   
-    if(mapcounts[pte->pfn] == 0){ //current만 쓰고있던 페이지여서 반환해도 됨
-        push_stack(pte->pfn);//free를 어떻게 하지??
-    }
     
 }
 

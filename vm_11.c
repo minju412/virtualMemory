@@ -90,6 +90,7 @@ int find_min(void){
 	struct entry *node;
     int min=1000;
    
+   //min 찾기
     list_for_each_prev(ptr, &stack){ 
 		node =list_entry(ptr, struct entry, list);
 		if(node->num < min)
@@ -100,7 +101,7 @@ int find_min(void){
 		node =list_entry(ptr, struct entry, list);
 		if(node->num == min){
             list_del(&node->list);
-            free(node);
+            // free(node);
             return min;
         }
 	}
@@ -128,25 +129,27 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw) //vpn을 index로 사
     if(rw == 1){ //rw == RW_READ
 		pte->valid = true;
 		pte->writable = false;
-        pte->private = 0; ////////////////////////추가 - read 였음
+        pte->private = 0; ///추가 - read 였음
 	}else if(rw == 3){ //rw == RW_WRITE
 		pte->valid = true;
 		pte->writable = true;
-        pte->private = 1; ////////////////////////추가 - write 였음
+        pte->private = 1; //추가 - write 였음
 	}
 
 
-    if(list_empty(&stack)){
+    if(list_empty(&stack)){ //스택이 비어있다면	
         cnt++;
         pte->pfn = cnt;
         mapcounts[cnt]++;
         mapcnt_index++;
+		// printf("1 : %d\n", cnt);
         return cnt;
     }else{ //free 받은 pfn이 있다면
         int min = find_min();
         pte->pfn = min;
         mapcounts[min]++;
         mapcnt_index++;
+		// printf("2 : %d\n", min);
         return min;
     }
 
@@ -164,14 +167,35 @@ void free_page(unsigned int vpn) //맵카운트가 0일때는 free하고 0보다
     pte->writable = false;
 
     mapcounts[pte->pfn]--;
-    mapcnt_index--;
+	mapcnt_index--;
+
+
+	if(mapcounts[pte->pfn] >= 1){ //다른 프로세스도 같이 쓰고 있던 페이지
+        push_stack(pte->pfn); 
+    } else{ //나 혼자 쓰고 있었다면 스택에서 찾아서 지우기?
+		struct list_head *ptr, *ptrn;
+		struct entry *node;
+		int flag=0;
+	
+		list_for_each_prev(ptr, &stack){ 
+			node =list_entry(ptr, struct entry, list);			
+			if(node->num == pte->pfn){ //존재하면 삭제
+				flag=1;
+			}
+		}
+		if(flag==1){
+			list_for_each_safe(ptr, ptrn, &stack){ 
+				node =list_entry(ptr, struct entry, list);
+				if(node->num == pte->pfn){
+					list_del(&node->list);					
+				}
+			}
+		}
+		
+	}
 
     // push_stack(pte->pfn);
     pte->pfn = 0;
-   
-    if(mapcounts[pte->pfn] == 0){ //current만 쓰고있던 페이지여서 반환해도 됨
-        push_stack(pte->pfn);//free를 어떻게 하지??
-    }
     
 }
 
@@ -217,7 +241,7 @@ bool handle_page_fault(unsigned int vpn, unsigned int rw) //상태가 Invalid일
 }
 
 
-//switch 1-> switch 2 했을 때 2번의 show가 다 0으로 출력.......????
+//switch 1-> switch 2 했을 때 2번의 show가 다 0으로 출력.......???????????
 
 struct process child;
 void switch_process(unsigned int pid) 

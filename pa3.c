@@ -173,9 +173,9 @@ void free_page(unsigned int vpn) //맵카운트가 0일때는 free하고 0보다
     pte->valid = false;
     pte->writable = false;
 
-    if(mapcounts[tmp] == 0){ //혼자 쓰고 있던 것
-       pte = NULL;
-    }
+    // if(mapcounts[tmp] == 0){ //혼자 쓰고 있던 것
+    //    pte = NULL;
+    // }
 
 
 	// if(mapcounts[pte->pfn] >= 1){ //다른 프로세스도 같이 쓰고 있던 페이지
@@ -238,30 +238,36 @@ bool handle_page_fault(unsigned int vpn, unsigned int rw) //상태가 Invalid일
     
     int new_pfn=0;
 
-    if(pte->private == 0){ //rw == RW_READ
+     if(pte->private == 0){ //rw == RW_READ
 		return false;
 	}else if(pte->private == 1){ //rw == RW_WRITE
         //내용을 다른 page frame에 copy한 뒤에
 
-        //new_pfn 찾기
-        if(list_empty(&stack)){
-            cnt++;
-            new_pfn = cnt;         
-        }else{ //free 받은 pfn이 있다면
-            int min = find_min();
-            new_pfn = min;       
+        //현재 캡카운트가 1이면 new_pfn 찾지 말고 그냥 자기껄로 만들기! ///////////추가
+        if(mapcounts[old_pfn]==1){
+            pte->writable = true;
+        }else{
+
+            //new_pfn 찾기
+            if(list_empty(&stack)){
+                cnt++;
+                new_pfn = cnt;         
+            }else{ //free 받은 pfn이 있다면
+                int min = find_min();
+                new_pfn = min;       
+            }
+            
+            //원래 매핑을 끊고 (free 아닌듯!) 
+            pte->pfn = new_pfn;
+            //copy한 frame에 연결하고 
+            // current->pagetable.outer_ptes[pd_index]->ptes[new_pfn].pfn = new_pfn;
+            //w를 켜주고 (PTE update)
+            pte->writable = true;
+            // current->pagetable.outer_ptes[pd_index]->ptes[new_pfn].writable = true;
+            
+            mapcounts[old_pfn]--;
+            mapcounts[new_pfn]++;
         }
-        
-        //원래 매핑을 끊고 (free 아닌듯!) 
-        pte->pfn = new_pfn;
-        //copy한 frame에 연결하고 
-        // current->pagetable.outer_ptes[pd_index]->ptes[new_pfn].pfn = new_pfn;
-        //w를 켜주고 (PTE update)
-        pte->writable = true;
-        // current->pagetable.outer_ptes[pd_index]->ptes[new_pfn].writable = true;
-        
-        mapcounts[old_pfn]--;
-        mapcounts[new_pfn]++;
         return true;
 	}
 
@@ -331,7 +337,8 @@ here:
             mapcounts[i]++;
         
         for(int i=0; i<=global_pd_index; i++){ //current의 outertable이 몇개까지 있는지!!!
-            child.pagetable.outer_ptes[i] = malloc(sizeof(struct pte_directory));
+            if(!child.pagetable.outer_ptes[i])
+                child.pagetable.outer_ptes[i] = malloc(sizeof(struct pte_directory));
             
             for(int j=0; j<16; j++){ 
                 // struct pte *pte = &current->pagetable.outer_ptes[i]->ptes[j];  

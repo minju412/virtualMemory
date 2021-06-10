@@ -174,9 +174,9 @@ void free_page(unsigned int vpn) //맵카운트가 0일때는 free하고 0보다
     pte->valid = false;
     pte->writable = false;
 
-    if(mapcounts[tmp] == 0){ //혼자 쓰고 있던 것
-       pte = NULL;
-    }
+    // if(mapcounts[tmp] == 0){ //혼자 쓰고 있던 것
+    //    pte = NULL;
+    // }
     // else{ //두개 이상의 프로세스와 공유하던 page
     //     printf("more two\n");
     // }
@@ -229,25 +229,31 @@ bool handle_page_fault(unsigned int vpn, unsigned int rw) //상태가 Invalid일
 	}else if(pte->private == 1){ //rw == RW_WRITE
         //내용을 다른 page frame에 copy한 뒤에
 
-        //new_pfn 찾기
-        if(list_empty(&stack)){
-            cnt++;
-            new_pfn = cnt;         
-        }else{ //free 받은 pfn이 있다면
-            int min = find_min();
-            new_pfn = min;       
+        //현재 캡카운트가 1이면 new_pfn 찾지 말고 그냥 자기껄로 만들기! ///////////추가
+        if(mapcounts[old_pfn]==1){
+            pte->writable = true;
+        }else{
+
+            //new_pfn 찾기
+            if(list_empty(&stack)){
+                cnt++;
+                new_pfn = cnt;         
+            }else{ //free 받은 pfn이 있다면
+                int min = find_min();
+                new_pfn = min;       
+            }
+            
+            //원래 매핑을 끊고 (free 아닌듯!) 
+            pte->pfn = new_pfn;
+            //copy한 frame에 연결하고 
+            // current->pagetable.outer_ptes[pd_index]->ptes[new_pfn].pfn = new_pfn;
+            //w를 켜주고 (PTE update)
+            pte->writable = true;
+            // current->pagetable.outer_ptes[pd_index]->ptes[new_pfn].writable = true;
+            
+            mapcounts[old_pfn]--;
+            mapcounts[new_pfn]++;
         }
-        
-        //원래 매핑을 끊고 (free 아닌듯!) 
-        pte->pfn = new_pfn;
-        //copy한 frame에 연결하고 
-        // current->pagetable.outer_ptes[pd_index]->ptes[new_pfn].pfn = new_pfn;
-        //w를 켜주고 (PTE update)
-        pte->writable = true;
-        // current->pagetable.outer_ptes[pd_index]->ptes[new_pfn].writable = true;
-        
-        mapcounts[old_pfn]--;
-        mapcounts[new_pfn]++;
         return true;
 	}
 
@@ -263,7 +269,8 @@ void switch_process(unsigned int pid)
     struct list_head* ptr;
     struct process* prc = NULL;
     int flag=0;
-    
+   
+    // printf("1. current=%d\n", current->pid);
 
     list_for_each(ptr, &processes){
         prc = list_entry(ptr, struct process, list);
@@ -280,12 +287,17 @@ void switch_process(unsigned int pid)
             goto here;   
         }      
     }
-
+    
 here:
     if(flag==0){ //존재하지 않는 프로세스로 switch
         // printf("forked!\n");
         //깊은 복사 -> 포인터를 복사하는게 아니라 하나하나 내용 복사!
-        child.pid = pid;
+        // printf("2. current=%d\n", current->pid);
+        // child.pid = pid;
+        // printf("3. current=%d\n", current->pid);
+        
+        // printf("current=%d child=%d\n", current->pid, child.pid);
+
 
         //copy-on-write
         //current의 w를 끄기 (원래 read였으면 pte->private=0 / write였으면 private=1)
@@ -299,23 +311,26 @@ here:
         for(int i=0; i<mapcnt_index; i++)
             mapcounts[i]++;
         
+        // printf("4. current=%d\n", current->pid);
         for(int i=0; i<=global_pd_index; i++){ //current의 outertable이 몇개까지 있는지!!!
-            child.pagetable.outer_ptes[i] = malloc(sizeof(struct pte_directory));
+            if(!child.pagetable.outer_ptes[i])
+                child.pagetable.outer_ptes[i] = malloc(sizeof(struct pte_directory));
             
             for(int j=0; j<16; j++){ 
+                printf("pfn=%d\n", current->pagetable.outer_ptes[i]->ptes[j].pfn);
                 // struct pte *pte = &current->pagetable.outer_ptes[i]->ptes[j];  
                 child.pagetable.outer_ptes[i]->ptes[j].writable = false;
                 child.pagetable.outer_ptes[i]->ptes[j].valid = current->pagetable.outer_ptes[i]->ptes[j].valid;
                 child.pagetable.outer_ptes[i]->ptes[j].pfn = current->pagetable.outer_ptes[i]->ptes[j].pfn; 
-                child.pagetable.outer_ptes[i]->ptes[j].private = current->pagetable.outer_ptes[i]->ptes[j].private;              
-             
+                child.pagetable.outer_ptes[i]->ptes[j].private = current->pagetable.outer_ptes[i]->ptes[j].private;                        
             }
         }
-
+        // printf("5. current=%d\n", current->pid);
         list_add_tail(&current->list, &processes);
+        child.pid = pid; ///////////
         ptbr = &child.pagetable;
         current = &child;
-        
+        // printf("6. current=%d\n", current->pid);
     }
     
 }

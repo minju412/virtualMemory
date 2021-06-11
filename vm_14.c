@@ -109,7 +109,7 @@ void push_stack(int num)
 
 int cnt=-1;
 int global_pd_index=0; 
-int mapcnt_index=0; 
+// int mapcnt_index=0; 
 
 struct pte *pte;
 
@@ -165,7 +165,7 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw) //vpn을 index로 사
         
         pte->pfn = ret;
         mapcounts[ret]++;
-        mapcnt_index++;
+        // mapcnt_index++;
 
         if(ret >= 0) //스택 비어있지 않아도 ret을 못 찾을 수 있음..!!
             return ret;
@@ -175,8 +175,8 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw) //vpn을 index로 사
     cnt++;
     pte->pfn = cnt;
     mapcounts[cnt]++;
-    mapcnt_index++;
-    // printf("1 : %d\n", cnt);
+    // mapcnt_index++;
+   
     return cnt;
     
 }
@@ -190,11 +190,11 @@ void free_page(unsigned int vpn) //맵카운트가 0일때는 free하고 0보다
     pte = &current->pagetable.outer_ptes[pd_index]->ptes[pte_index];
 
     mapcounts[pte->pfn]--;
-	mapcnt_index--;
+	// mapcnt_index--;
 
     push_stack(pte->pfn);
 
-    int tmp = pte->pfn;
+    // int tmp = pte->pfn;
     pte->pfn = 0;
     pte->valid = false;
     pte->writable = false;

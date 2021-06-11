@@ -79,11 +79,10 @@ void push_stack(int num)
 
 int cnt=-1;
 int global_pd_index=0; 
-int mapcnt_index=0; 
 
 struct pte *pte;
 
-unsigned int alloc_page(unsigned int vpn, unsigned int rw) //vpn을 index로 사용?, 0 ~ 15
+unsigned int alloc_page(unsigned int vpn, unsigned int rw) 
 { 
     int pd_index = vpn / NR_PTES_PER_PAGE; //outer의 인덱스
 	int pte_index = vpn % NR_PTES_PER_PAGE; //ptes의 인덱스
@@ -132,9 +131,8 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw) //vpn을 index로 사
        
         pte->pfn = ret;
         mapcounts[ret]++;
-        mapcnt_index++;
 
-        if(ret >= 0) //스택 비어있지 않아도 ret을 못 찾을 수 있음..!!
+        if(ret >= 0) //스택 비어있지 않아도 ret을 못 찾을 수 있음
             return ret;
     }
 
@@ -142,7 +140,6 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw) //vpn을 index로 사
     cnt++;
     pte->pfn = cnt;
     mapcounts[cnt]++;
-    mapcnt_index++;
     
     return cnt;
     
@@ -167,11 +164,9 @@ void free_page(unsigned int vpn) //맵카운트가 0일때는 free하고 0보다
     pte = &current->pagetable.outer_ptes[pd_index]->ptes[pte_index];
 
     mapcounts[pte->pfn]--;
-	mapcnt_index--;
 
     push_stack(pte->pfn);
 
-    int tmp = pte->pfn;
     pte->pfn = 0;
     pte->valid = false;
     pte->writable = false;
@@ -289,7 +284,7 @@ here:
         } 
 
    
-        for(int i=0; i<=global_pd_index; i++){ //current의 outertable이 몇개까지 있는지!!!
+        for(int i=0; i<=global_pd_index; i++){ //global_pd_index : current의 outertable이 몇개까지 있는지
             if(!child.pagetable.outer_ptes[i])
                 child.pagetable.outer_ptes[i] = malloc(sizeof(struct pte_directory));
             
@@ -305,12 +300,12 @@ here:
                 }                  
             }
         }
-        // printf("5. current=%d\n", current->pid);
+        
         list_add_tail(&current->list, &processes);
-        child.pid = pid; ///////////
+        child.pid = pid; 
         ptbr = &child.pagetable;
         current = &child;
-        // printf("6. current=%d\n", current->pid);
+        
     }
     
 }

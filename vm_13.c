@@ -170,8 +170,7 @@ void free_page(unsigned int vpn) //맵카운트가 0일때는 free하고 0보다
 
     // }
 
-    pte->valid = false;
-    pte->writable = false;
+ 
 
     mapcounts[pte->pfn]--;
 	mapcnt_index--;
@@ -181,9 +180,17 @@ void free_page(unsigned int vpn) //맵카운트가 0일때는 free하고 0보다
     pte->valid = false;
     pte->writable = false;
 
-    // if(mapcounts[tmp] == 0){ //혼자 쓰고 있던 것
-    //    pte = NULL;
-    // }
+
+    
+    if(mapcounts[tmp] == 0){ //혼자 쓰고 있던 것  
+		// freed VPN should be denied by MMU!!!!!!!!!!
+		printf("alone!\n");
+		
+    }
+	
+
+    
+    
     // else{ //두개 이상의 프로세스와 공유하던 page
     //     printf("more two\n");
     // }

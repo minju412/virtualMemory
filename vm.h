@@ -22,7 +22,7 @@
 
 /* The number of PTEs in a page */
 #define PTES_PER_PAGE_SHIFT	4
-#define NR_PTES_PER_PAGE    (1 << PTES_PER_PAGE_SHIFT)
+#define NR_PTES_PER_PAGE    (1 << PTES_PER_PAGE_SHIFT) //16
 
 #define RW_READ  0x01
 #define RW_WRITE 0x02
